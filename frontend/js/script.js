@@ -102,16 +102,197 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+const CaptchaManager = (function () {
+    let currentCaptcha = '';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+
+    function generateCode(length = 4) {
+        let code = '';
+        for (let i = 0; i < length; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+    }
+
+    function drawCaptcha(code) {
+        const canvas = document.getElementById('captchaCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.fillStyle = '#f9f9f9';
+        ctx.fillRect(0, 0, w, h);
+
+        for (let i = 0; i < 5; i++) {
+            ctx.strokeStyle = `rgba(${rand(0, 200)}, ${rand(0, 200)}, ${rand(0, 200)}, 0.5)`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(rand(0, w), rand(0, h));
+            ctx.lineTo(rand(0, w), rand(0, h));
+            ctx.stroke();
+        }
+
+        for (let i = 0; i < 30; i++) {
+            ctx.fillStyle = `rgba(${rand(0, 200)}, ${rand(0, 200)}, ${rand(0, 200)}, 0.5)`;
+            ctx.beginPath();
+            ctx.arc(rand(0, w), rand(0, h), 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        const fonts = ['Arial', 'Georgia', 'Verdana', 'Times New Roman'];
+        for (let i = 0; i < code.length; i++) {
+            ctx.save();
+            const fontSize = rand(22, 28);
+            const font = fonts[rand(0, fonts.length - 1)];
+            ctx.font = `bold ${fontSize}px ${font}`;
+            ctx.fillStyle = `rgb(${rand(20, 120)}, ${rand(20, 120)}, ${rand(20, 120)})`;
+            const x = 15 + i * 20;
+            const y = h / 2 + rand(-4, 4);
+            const angle = (rand(-25, 25) * Math.PI) / 180;
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(code[i], 0, 0);
+            ctx.restore();
+        }
+
+        canvas.setAttribute('aria-label', `图形验证码，内容是${code.split('').join('，')}`);
+    }
+
+    function rand(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function refresh() {
+        hideError();
+        currentCaptcha = generateCode();
+        drawCaptcha(currentCaptcha);
+        return currentCaptcha;
+    }
+
+    function getCurrent() {
+        return currentCaptcha;
+    }
+
+    function validate(input) {
+        return input.toLowerCase() === currentCaptcha.toLowerCase();
+    }
+
+    function speak() {
+        const audioBtn = document.getElementById('audioCaptchaBtn');
+        hideError();
+
+        if (!('speechSynthesis' in window)) {
+            showError('当前浏览器不支持语音功能，请尝试使用其他浏览器或手动输入验证码。');
+            return false;
+        }
+
+        try {
+            window.speechSynthesis.cancel();
+
+            const utter = new SpeechSynthesisUtterance();
+            const chars = currentCaptcha.split('');
+            utter.text = '验证码是：' + chars.join('，') + '。';
+            utter.lang = 'zh-CN';
+            utter.rate = 0.8;
+            utter.pitch = 1;
+            utter.volume = 1;
+
+            utter.onstart = function () {
+                if (audioBtn) audioBtn.classList.add('playing');
+            };
+
+            utter.onend = function () {
+                if (audioBtn) audioBtn.classList.remove('playing');
+            };
+
+            utter.onerror = function (e) {
+                if (audioBtn) audioBtn.classList.remove('playing');
+                if (e.error && e.error !== 'canceled' && e.error !== 'interrupted') {
+                    showError('语音播放失败，请手动输入验证码或稍后重试。');
+                }
+            };
+
+            window.speechSynthesis.speak(utter);
+            return true;
+        } catch (e) {
+            if (audioBtn) audioBtn.classList.remove('playing');
+            showError('语音播放失败，请手动输入验证码或稍后重试。');
+            return false;
+        }
+    }
+
+    function showError(message) {
+        const errorEl = document.getElementById('captchaError');
+        if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+    }
+
+    function hideError() {
+        const errorEl = document.getElementById('captchaError');
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+        }
+    }
+
+    return { refresh, getCurrent, validate, speak, showError, hideError };
+})();
+
 // Validation Logic
 document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('loginBtn');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
+    const captchaInput = document.getElementById('captchaInput');
+    const refreshBtn = document.getElementById('refreshCaptchaBtn');
+    const audioBtn = document.getElementById('audioCaptchaBtn');
+    const captchaCanvas = document.getElementById('captchaCanvas');
+
+    CaptchaManager.refresh();
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function () {
+            CaptchaManager.refresh();
+            if (captchaInput) captchaInput.focus();
+        });
+    }
+
+    if (audioBtn) {
+        audioBtn.addEventListener('click', function () {
+            CaptchaManager.speak();
+        });
+    }
+
+    if (captchaCanvas) {
+        captchaCanvas.addEventListener('click', function () {
+            CaptchaManager.refresh();
+            if (captchaInput) captchaInput.focus();
+        });
+
+        captchaCanvas.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                CaptchaManager.refresh();
+                if (captchaInput) captchaInput.focus();
+            }
+        });
+    }
+
+    if (captchaInput) {
+        captchaInput.addEventListener('input', function () {
+            CaptchaManager.hideError();
+        });
+    }
 
     if (loginBtn) {
         loginBtn.addEventListener('click', () => {
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
+            const captcha = captchaInput ? captchaInput.value.trim() : '';
 
             if (!username) {
                 showToast('请输入邮箱账号或手机号码', 'error');
@@ -125,12 +306,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // If both valid
+            if (!captcha) {
+                CaptchaManager.showError('请输入验证码');
+                captchaInput.focus();
+                return;
+            }
+
+            if (!CaptchaManager.validate(captcha)) {
+                CaptchaManager.refresh();
+                CaptchaManager.showError('验证码错误，请重新输入');
+                captchaInput.value = '';
+                captchaInput.focus();
+                return;
+            }
+
             showToast('登录成功', 'success');
-            
-            // Optional: Clear inputs or redirect
-            // usernameInput.value = '';
-            // passwordInput.value = '';
         });
     }
 });

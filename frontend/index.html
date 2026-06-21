@@ -84,6 +84,30 @@
                             </div>
                         </div>
 
+                        <!-- Captcha -->
+                        <div class="input-group captcha-group">
+                            <label for="captchaInput" class="sr-only">验证码</label>
+                            <div class="captcha-wrapper">
+                                <div class="input-wrapper captcha-input-wrapper">
+                                    <input type="text" class="input-field" id="captchaInput" placeholder="请输入验证码" maxlength="4" autocomplete="off">
+                                </div>
+                                <div class="captcha-controls" role="group" aria-label="验证码操作">
+                                    <canvas id="captchaCanvas" class="captcha-canvas" width="100" height="40" aria-label="图形验证码" tabindex="0"></canvas>
+                                    <button type="button" class="captcha-btn audio-btn" id="audioCaptchaBtn" aria-label="播放语音验证码" title="播放语音验证码">
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#666" aria-hidden="true">
+                                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="captcha-btn refresh-btn" id="refreshCaptchaBtn" aria-label="刷新验证码" title="刷新验证码">
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="#666" aria-hidden="true">
+                                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="captchaError" class="captcha-error" role="alert" aria-live="assertive" style="display:none;"></div>
+                        </div>
+
                         <!-- 8. Options -->
                         <div class="options-row">
                             <label class="checkbox-label">
